@@ -1,17 +1,12 @@
 package com.rajat.pdfviewer.util
-
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import android.os.Environment
-import android.provider.MediaStore
-import android.text.TextUtils
+import android.util.Log
+import android.widget.Toast
 import java.io.*
-import android.util.Log;
-import java.io.PrintWriter
-import java.io.StringWriter
-import android.content.Intent;
-import android.widget.Toast;
-//import android.net.Uri;
-//import android.app.DownloadManager
+
 
 object FileUtils {
     @Throws(IOException::class)
@@ -27,7 +22,7 @@ object FileUtils {
     fun copy(inputStream: InputStream?, output: File?) {
         var outputStream: OutputStream? = null
         try {
-                outputStream = FileOutputStream(output)
+            outputStream = FileOutputStream(output)
             var read = 0
             val bytes = ByteArray(1024)
             while (inputStream!!.read(bytes).also { read = it } != -1) {
@@ -40,30 +35,41 @@ object FileUtils {
                 outputStream?.close()
             }
         }
-    }
+    }    
 
     fun downloadFile(context: Context, assetName: String, filePath: String, fileName: String?){
         try {
             val dirPath = "${Environment.getExternalStorageDirectory()}/${filePath}"
             val outFile = File(dirPath)
-            //Create New File if not present
             if (!outFile.exists()) {
                 outFile.mkdirs()
             }
             val outFile1 = File(dirPath, "/$fileName.pdf")
             val localPdf = File(assetName)
-
             var ins: InputStream = localPdf.inputStream()
             copy(ins, outFile1)
-            //val uri = Uri.fromFile(outFile1)
-            val toast = Toast.makeText(context, "Successfully Save PDF To Download", 3000)
-            toast.show()
-            //context.startActivity(Intent(DownloadManager.ACTION_VIEW_DOWNLOADS));
+            val myDir = Uri.parse(dirPath)
+            val intent = Intent(Intent.ACTION_GET_CONTENT)
+            intent.setDataAndType(myDir,  "application/pdf")
+            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            if (intent.resolveActivityInfo(context.packageManager, 0) != null)
+            {
+                context.startActivity(Intent.createChooser(intent, "Open File..."))
+                val toast = Toast.makeText(context, "Successfully save receipt to folder $filePath ", Toast.LENGTH_LONG)
+                toast.show()
+            }
+            else
+            {
+                val toast = Toast.makeText(context, "Failed save receipt to folder $filePath", Toast.LENGTH_LONG)
+                toast.show()
+            }
         } catch(e: Exception) {
             val sw = StringWriter()
             e.printStackTrace(PrintWriter(sw))
             val exceptionAsString = sw.toString()
             Log.d(">>>>>", exceptionAsString);
+            val toast = Toast.makeText(context, "Failed save pdf to fodler $filePath. Error:  $exceptionAsString", Toast.LENGTH_LONG)
+            toast.show()
         }
     }
 }
